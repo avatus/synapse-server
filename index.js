@@ -7,4 +7,5 @@ const port = process.env.PORT || 5001
 
 http.listen(port, () => {
     console.log(`Server ${chalk.green('connected')}: ${chalk.magenta(new Date().toISOString())}`)
+    console.log(`Port ${chalk.green(port)}`)
 })
