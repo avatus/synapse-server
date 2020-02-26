@@ -26,10 +26,6 @@ exports.SOCKET_FUNCTIONS = async (socket) => {
     })
 
     socket.on('SEND_MESSAGE', message => {
-        io.of('/').adapter.remoteJoin(socket.id, 'room1', (err) => {
-            if (err) { console.log( err) }
-            console.log('joined')
-        });
         const text = message.text.trim()
         if (text === "!rooms") {
             return console.log('room command')
