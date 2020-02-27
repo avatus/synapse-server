@@ -16,6 +16,7 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             socket: socket.id
         })
         newUser.save()
+        socket.emit('USER_ROOM_LIST', [])
     }
     else {
         user.socket = socket.id
@@ -23,11 +24,14 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
         user.rooms.forEach(room => {
             io.of('/').adapter.remoteJoin(socket.id, room, (err) => {
                 if (err) {
-                    return socket.emit('JOIN_ROOM_ERROR', err)
+                    socket.emit('JOIN_ROOM_ERROR', err)
                 }
-                return socket.emit('JOINED_ROOM', )
+                else {
+                    socket.emit('JOINED_ROOM', )
+                }
             });
         })
+        socket.emit('USER_ROOM_LIST', user.rooms)
     }
 
     socket.on('disconnect', () => {
@@ -41,7 +45,14 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             let room_name = args[1]
             const user = await User.findOne({id_token})
             if (user !== null) {
-                if (!user.rooms.includes[room_name]) {
+                let room = await Room.findOne({name: room_name})
+                if (room === null) {
+                    room = new Room({
+                        name: room_name
+                    })
+                    await room.save()
+                }
+                if (!user.rooms.includes(room_name)) {
                     user.rooms.push(room_name)
                     user.save()
                 }
@@ -63,8 +74,16 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
 
 exports.getAllRooms = io => (req, res) => {
     try {
-        io.of('/').adapter.allRooms((err, rooms) => {
-            return res.status(200).json(rooms)
+        io.of('/').adapter.clients((err, clients) => {
+            io.of('/').adapter.allRooms((err, rooms) => {
+                let real_rooms = []
+                rooms.forEach(room => {
+                    if (!clients.includes(room)) {
+                        real_rooms.push(room)
+                    }
+                })
+                return res.status(200).json(real_rooms)
+            })
         })
     } catch (error) {
         console.log(error)
