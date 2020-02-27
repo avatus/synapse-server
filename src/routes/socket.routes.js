@@ -5,7 +5,8 @@ module.exports = io => {
     // const jwt = passport.authenticate('jwt', { session: false })
     const Controller = require('../controllers/socket.controller')
 
-    router.get('/getAllRooms', Controller.getAllRooms(io))
+    router.get('/get_all_rooms', Controller.getAllRooms(io))
+    router.get('/get_room_info/:room', Controller.getRoomInfo(io))
 
     return router
 }

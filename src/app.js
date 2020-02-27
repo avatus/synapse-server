@@ -10,9 +10,9 @@ const redisAdapter = require('socket.io-redis');
 const redis = require('redis')
 const pub = redis.createClient(process.env.REDIS_PORT, process.env.REDIS_ENDPOINT, { auth_pass: process.env.REDIS_PASSWORD });
 const sub = redis.createClient(process.env.REDIS_PORT, process.env.REDIS_ENDPOINT, { auth_pass: process.env.REDIS_PASSWORD });
-const Controller = require('./controllers/socket.controller').SOCKET_FUNCTIONS
 const io = require('socket.io')(http);
 const identify = require('./config/identify')
+const Controller = require('./controllers/socket.controller').SOCKET_FUNCTIONS(io)
 
 io.adapter(redisAdapter({ pubClient: pub, subClient: sub }));
 io.on('connection', Controller)
