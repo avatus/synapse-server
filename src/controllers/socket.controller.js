@@ -20,55 +20,45 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
     }
     else {
         user.socket = socket.id
-        user.save()
         user.rooms.forEach(room => {
             io.of('/').adapter.remoteJoin(socket.id, room, (err) => {
                 if (err) {
                     socket.emit('JOIN_ROOM_ERROR', err)
                 }
                 else {
-                    socket.emit('JOINED_ROOM', )
+                    // io.in(room).emit('USER_JOINED_ROOM', {room, id_token: user.id_token});
                 }
             });
         })
+        user.save()
         socket.emit('USER_ROOM_LIST', user.rooms)
     }
 
-    socket.on('disconnect', () => {
-        // console.log(`disconnected: ${id_token}`);
+    socket.on('disconnecting', () => {
+        io.of('/').adapter.clientRooms(socket.id, (err, rooms) => {
+            if (err) { console.log(err) }
+            rooms.forEach(room => {
+                io.in(room).emit('USER_LEFT_ROOM', room)
+            })
+        });
     })
 
-    socket.on('SEND_MESSAGE', async message => {
-        const text = message.text.trim()
-        if (text.startsWith("/join")) {
-            let args = text.split(' ')
-            let room_name = args[1]
-            const user = await User.findOne({id_token})
-            if (user !== null) {
-                let room = await Room.findOne({name: room_name})
-                if (room === null) {
-                    room = new Room({
-                        name: room_name
-                    })
-                    await room.save()
-                }
-                if (!user.rooms.includes(room_name)) {
-                    user.rooms.push(room_name)
-                    user.save()
-                }
-            }
+    socket.on('disconnect', () => {
 
+        // io.in(room).emit('USER_LEFT_ROOM', {room, message});
+    })
 
-            io.of('/').adapter.remoteJoin(socket.id, room_name, (err) => {
-                if (err) {
-                    return socket.emit('JOIN_ROOM_ERROR', err)
-                }
-                return socket.emit('JOINED_ROOM', )
-            });
+    socket.on('SEND_MESSAGE', async ({room, message}) => {
+        const db_room = await Room.findOne({name: room})
+        let history = db_room.history.slice(-99)
+        history.push(message)
+        db_room.history = history
+        db_room.save()
+        return io.in(room).emit('ROOM_MESSAGE', {room, message});
+    })
 
-            return
-        }
-        return socket.broadcast.emit('RECEIVE_MESSAGE', message);
+    socket.on('USER_LEFT_ROOM', async room => {
+        socket.to(room).emit('USER_LEFT_ROOM', room)
     })
 }
 
@@ -91,13 +81,44 @@ exports.getAllRooms = io => (req, res) => {
     }
 }
 
-exports.getRoomInfo = io => (req, res) => {
-    const room = req.params.room
+exports.getRoomInfo = io => async (req, res) => {
+    const name = req.params.room
+    const { id_token } = req
     try {
-        io.of('/').adapter.clients([room], (err, clients) => {
-            console.log(clients); 
-            return res.status(200).json(clients)
-        });
+        let room = await Room.findOne({ name })
+        if (room === null) {
+            room = new Room({ name })
+            room.save()
+        }
+
+        if (!id_token) {
+            return res.status(400).json({message: "Invalid or missing identification token"})
+        }
+
+        const user = await User.findOne({id_token})
+        if (user !== null) {
+            if (!user.rooms.includes(room.name)) {
+                user.rooms = user.rooms.concat([room.name])
+                user.save()
+            }
+            io.of('/').adapter.remoteJoin(user.socket, name, (err) => {
+                if (err) {
+                    console.log(err)
+                }
+                io.in(room.name).emit('USER_JOINED_ROOM', {room: room.name, id_token: user.id_token});
+            });
+        }
+
+        io.in(name).clients((err, clients) => {
+            if (err) {
+                return res.status(500).json({message: err})
+            }
+            return res.status(200).json({
+                room_name: name,
+                users: clients.length,
+                history: room.history,
+            })
+        })
     } catch (error) {
         console.log(error)
         return res.status(500).json({message: error.message})
