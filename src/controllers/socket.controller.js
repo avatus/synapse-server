@@ -1,5 +1,6 @@
 const User = require('../models/user.model')
 const Room = require('../models/room.model')
+const randomstring = require('randomstring')
 
 exports.SOCKET_FUNCTIONS = io => async (socket) => {
     const id_token = socket.handshake.query.id_token || null
@@ -62,19 +63,21 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
     })
 }
 
-exports.getAllRooms = io => (req, res) => {
+exports.getAllRooms = io => async (req, res) => {
     try {
-        io.of('/').adapter.clients((err, clients) => {
-            io.of('/').adapter.allRooms((err, rooms) => {
-                let real_rooms = []
-                rooms.forEach(room => {
-                    if (!clients.includes(room)) {
-                        real_rooms.push(room)
-                    }
-                })
-                return res.status(200).json(real_rooms)
-            })
-        })
+        const rooms = await Room.find()
+        return res.status(200).json(rooms)
+        // io.of('/').adapter.clients((err, clients) => {
+        //     io.of('/').adapter.allRooms((err, rooms) => {
+        //         let real_rooms = []
+        //         rooms.forEach(room => {
+        //             if (!clients.includes(room)) {
+        //                 real_rooms.push(room)
+        //             }
+        //         })
+        //         return res.status(200).json(real_rooms)
+        //     })
+        // })
     } catch (error) {
         console.log(error)
         return status(500).json({message: error.message})
@@ -123,4 +126,33 @@ exports.getRoomInfo = io => async (req, res) => {
         console.log(error)
         return res.status(500).json({message: error.message})
     }
+}
+
+exports.getRandomRoom = io => async (req, res) => {
+    try {
+
+        const user = await User.findOne({id_token: req.id_token})
+        if (user === null) {
+            return res.status(404).json({message: "Identification token not found."})
+        }
+
+        io.of('/').adapter.clientRooms(user.socket, async (err, rooms) => {
+            if (err) { console.log(err) }
+            let filteredRooms = await Room.find().where('name').nin(rooms)
+            if (filteredRooms.length <1) {
+                return res.status(200).json({room: randomstring.generate(12)})
+            }
+            else {
+                const names = filteredRooms.map(r => r.name)
+                const randomRoom = names[Math.floor(Math.random() * names.length)]
+                return res.status(200).json({room: randomRoom})
+
+            }
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: error.message})
+    }
+    return res.status
 }

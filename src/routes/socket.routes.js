@@ -7,6 +7,7 @@ module.exports = io => {
 
     router.get('/get_all_rooms', Controller.getAllRooms(io))
     router.get('/get_room_info/:room', Controller.getRoomInfo(io))
+    router.get('/get_random_room', Controller.getRandomRoom(io))
 
     return router
 }
