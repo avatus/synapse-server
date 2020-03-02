@@ -52,10 +52,19 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
     socket.on('SEND_MESSAGE', async ({room, message}) => {
         const db_room = await Room.findOne({name: room})
         let history = db_room.history.slice(-99)
+        message.delivered = true
         history.push(message)
         db_room.history = history
         db_room.save()
         return io.in(room).emit('ROOM_MESSAGE', {room, message});
+    })
+
+    socket.on('USER_RECONNECTED', async ({id}) => {
+        let user = await User.findOne({id_token: id})
+        if (user !== null) {
+            user.socket = socket.id
+            user.save()
+        }
     })
 
     socket.on('USER_LEFT_ROOM', async room => {
