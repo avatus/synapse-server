@@ -27,6 +27,7 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
                     socket.emit('JOIN_ROOM_ERROR', err)
                 }
                 else {
+                    // io.in(room.name).emit('USER_JOINED_ROOM', {room: room.name, id_token: user.id_token});
                     // io.in(room).emit('USER_JOINED_ROOM', {room, id_token: user.id_token});
                 }
             });
@@ -39,14 +40,19 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
         io.of('/').adapter.clientRooms(socket.id, (err, rooms) => {
             if (err) { console.log(err) }
             rooms.forEach(room => {
-                io.in(room).emit('USER_LEFT_ROOM', room)
+                // io.in(room).emit('USER_LEFT_ROOM', room)
             })
         });
     })
 
     socket.on('disconnect', () => {
-
         // io.in(room).emit('USER_LEFT_ROOM', {room, message});
+    })
+
+    socket.on('GET_ROOM_USER_COUNT', room => {
+        io.in(room).clients((err, clients) => {
+            return io.in(room).emit('UPDATE_ROOM_USER_COUNT', {room, users: clients.length});
+        })
     })
 
     socket.on('SEND_MESSAGE', async ({room, message}) => {
@@ -65,10 +71,6 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             user.socket = socket.id
             user.save()
         }
-    })
-
-    socket.on('USER_LEFT_ROOM', async room => {
-        socket.to(room).emit('USER_LEFT_ROOM', room)
     })
 }
 
@@ -112,12 +114,12 @@ exports.getRoomInfo = io => async (req, res) => {
             if (!user.rooms.includes(room.name)) {
                 user.rooms = user.rooms.concat([room.name])
                 user.save()
+                // io.in(room.name).emit('USER_JOINED_ROOM', {room: room.name, id_token: user.id_token});
             }
             io.of('/').adapter.remoteJoin(user.socket, name, (err) => {
                 if (err) {
                     console.log(err)
                 }
-                io.in(room.name).emit('USER_JOINED_ROOM', {room: room.name, id_token: user.id_token});
             });
         }
 
@@ -198,6 +200,11 @@ exports.leaveRoom = io => async (req, res) => {
         }
 
         user.rooms = user.rooms.filter(r => r !== data.room)
+        io.of('/').adapter.remoteLeave(user.socket, data.room, (err) => {
+            if (err) {
+                console.log(err)
+            }
+        });
         await user.save()
 
         return res.status(200).json({rooms: user.rooms})
