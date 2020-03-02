@@ -156,3 +156,45 @@ exports.getRandomRoom = io => async (req, res) => {
     }
     return res.status
 }
+
+exports.regenIdToken = io => async (req, res) => {
+    const id_token = req.id_token
+    try {
+        const user = await User.findOne({id_token})
+        if (user === null) {
+            return res.status(400).json({message: "id_token could not be refreshed"})
+        }
+
+        const newToken = randomstring.generate()
+
+        user.id_token = newToken
+
+        await user.save()
+
+        return res.status(200).json({id_token: newToken})
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: error.message})
+    }
+}
+
+exports.leaveRoom = io => async (req, res) => {
+    const id_token = req.id_token
+    const data = req.body
+    try {
+        const user = await User.findOne({id_token})
+        if (user === null) {
+            return res.status(400).json({message: "id_token could not be refreshed"})
+        }
+
+        user.rooms = user.rooms.filter(r => r !== data.room)
+        await user.save()
+
+        return res.status(200).json({rooms: user.rooms})
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: error.message})
+    }
+}
