@@ -76,19 +76,19 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
 
 exports.getAllRooms = io => async (req, res) => {
     try {
-        const rooms = await Room.find()
-        return res.status(200).json(rooms)
-        // io.of('/').adapter.clients((err, clients) => {
-        //     io.of('/').adapter.allRooms((err, rooms) => {
-        //         let real_rooms = []
-        //         rooms.forEach(room => {
-        //             if (!clients.includes(room)) {
-        //                 real_rooms.push(room)
-        //             }
-        //         })
-        //         return res.status(200).json(real_rooms)
-        //     })
-        // })
+        let rooms = await Room.find().select('-history')
+        const socketRoomInfo = io.of('/').adapter.rooms
+        rooms.forEach(r => {
+            if (socketRoomInfo[r.name]) {
+                r.users = socketRoomInfo[r.name].length
+            }
+        })
+        io.of('/').adapter.clients((err, clients) => {
+            if (err) {
+                return res.status(500).json({message: "error loading dashboard..."})
+            }
+            return res.status(200).json({rooms, clients: clients.length})
+        });
     } catch (error) {
         console.log(error)
         return status(500).json({message: error.message})
