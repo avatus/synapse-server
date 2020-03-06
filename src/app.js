@@ -25,7 +25,6 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(identify)
 
 app.use('/auth', require('./routes/auth.routes'))
-
 app.use('/sockets', require('./routes/socket.routes.js')(io))
 
 
