@@ -6,5 +6,6 @@ const Controller = require('../controllers/auth.controller')
 
 router.post('/recaptcha', Controller.recaptcha)
 router.get('/verify', jwt, Controller.verifyJwt)
+router.post('/user_image_upload', jwt, Controller.getCloudinarySignature)
 
 module.exports = router

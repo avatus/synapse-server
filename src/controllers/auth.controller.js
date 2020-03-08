@@ -1,6 +1,8 @@
 const User = require('../models/user.model')
 const axios = require('axios')
 const signJwt = require('../utils/signJwt')
+const randomString = require('randomstring')
+const cloudinary = require('cloudinary').v2
 
 exports.recaptcha = async (req, res) => {
     try {
@@ -61,5 +63,25 @@ exports.updateSettings = async (req, res) => {
     } catch (error) {
         console.log(error)
         return res.status(500).json({message: "Could not update settings."})
+    }
+}
+
+exports.getCloudinarySignature = async (req,res) => {
+    let timestamp = Date.now()
+    try {
+        let public_id = `${randomString.generate(7)}_${req.body.data}`
+        const url = cloudinary.utils.api_sign_request({
+            public_id: public_id, 
+            timestamp: timestamp,
+        }, process.env.CLOUDINARY_API_SECRET)
+
+        return res.json({
+            signature: url,
+            public_id: public_id,
+            timestamp: timestamp
+        })
+    } catch (error) {
+        console.log(error.message)
+        return res.status(500).json({message: error.message})
     }
 }

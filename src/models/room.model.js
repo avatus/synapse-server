@@ -9,6 +9,7 @@ const roomSchema = new Schema({
         id: String,
         user: String,
         text: String,
+        type: { type: String, default: "text" },
         delivered: { type: Boolean, default: true},
         time: Date
     }]
