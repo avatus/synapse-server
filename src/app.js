@@ -26,6 +26,7 @@ app.use(identify)
 
 app.use('/auth', require('./routes/auth.routes'))
 app.use('/sockets', require('./routes/socket.routes.js')(io))
+app.use('/messages', require('./routes/message.routes.js'))
 
 
 exports.io = io
