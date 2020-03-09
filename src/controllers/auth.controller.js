@@ -29,7 +29,13 @@ exports.recaptcha = async (req, res) => {
 }
 
 exports.verifyJwt = async (req, res) => {
+    const id_token = req.id_token
+
     if (req.user === true) {
+        const user = await User.findOne({id_token})
+        if (user !== null) {
+            return res.status(200).json({message: "Humanity confirmed", user})
+        }
         return res.status(200).json({message: "Humanity confirmed"})
     }
     return res.status(401).json({message: "You are not human."})

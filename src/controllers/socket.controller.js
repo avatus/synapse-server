@@ -18,7 +18,7 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             socket: socket.id
         })
         newUser.save()
-        socket.emit('USER_ROOM_LIST', [])
+        socket.emit('USER_ROOM_LIST', {rooms: [], unread: newUser.unread})
     }
     else {
         user.socket = socket.id
@@ -34,7 +34,7 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             });
         })
         user.save()
-        socket.emit('USER_ROOM_LIST', user.rooms)
+        socket.emit('USER_ROOM_LIST', {rooms: user.rooms, unread: user.unread})
     }
 
     socket.on('disconnecting', () => {
@@ -68,20 +68,20 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             message,
         })
         newRecentMessage.save()
-        // let users = await User.find().where('rooms').in([room])
-        // users.forEach(u => {
-        //     let unread
-        //     if (u.unread) {
-        //         unread = u.unread
-        //     }
-        //     else {
-        //         unread = {}
-        //     }
-        //     unread[room] ? unread[room] += 1 : unread[room] = 1
-        //     u.unread = unread
-        //     u.save()
-        // })
-        // console.log(users.length)
+        let users = await User.find().where('rooms').in([room])
+        users.forEach(u => {
+            let unread
+            if (u.unread) {
+                unread = u.unread
+            }
+            else {
+                unread = {}
+            }
+            unread[room] ? unread[room] += 1 : unread[room] = 1
+            u.unread = unread
+            u.markModified('unread')
+            u.save()
+        })
         return io.in(room).emit('ROOM_MESSAGE', {room, message});
     })
 
@@ -132,6 +132,11 @@ exports.getRoomInfo = io => async (req, res) => {
 
         const user = await User.findOne({id_token})
         if (user !== null) {
+            if (user.unread && user.unread[room.name]) {
+                delete user.unread[room.name]
+                user.markModified('unread')
+                user.save()
+            }
             if (!user.rooms.includes(room.name)) {
                 user.rooms = user.rooms.concat([room.name])
                 user.save()
