@@ -68,6 +68,20 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             message,
         })
         newRecentMessage.save()
+        // let users = await User.find().where('rooms').in([room])
+        // users.forEach(u => {
+        //     let unread
+        //     if (u.unread) {
+        //         unread = u.unread
+        //     }
+        //     else {
+        //         unread = {}
+        //     }
+        //     unread[room] ? unread[room] += 1 : unread[room] = 1
+        //     u.unread = unread
+        //     u.save()
+        // })
+        // console.log(users.length)
         return io.in(room).emit('ROOM_MESSAGE', {room, message});
     })
 
