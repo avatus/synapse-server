@@ -15,7 +15,8 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
     if (user === null) {
         let newUser = new User({
             id_token,
-            socket: socket.id
+            socket: socket.id,
+            unread: {},
         })
         newUser.save()
         socket.emit('USER_ROOM_LIST', {rooms: [], unread: newUser.unread})
