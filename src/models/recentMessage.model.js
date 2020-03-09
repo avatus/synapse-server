@@ -9,4 +9,5 @@ const recentMessageSchema = new Schema({
 
 const RecentMessage = mongoose.model('RecentMessage', recentMessageSchema)
 
+
 module.exports = RecentMessage
