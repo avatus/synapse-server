@@ -4,7 +4,7 @@ const Schema = mongoose.Schema
 const recentMessageSchema = new Schema({
     room: { type: String },
     message: {}
-}, { minimize: false, capped: {max: 100, size: 2056} })
+}, { minimize: false, capped: {max: 15, size: 2056} })
 
 
 const RecentMessage = mongoose.model('RecentMessage', recentMessageSchema)

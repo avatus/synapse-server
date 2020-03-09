@@ -82,6 +82,7 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             u.markModified('unread')
             u.save()
         })
+        io.in('recentMessages').emit('RECENT_MESSAGE', {room, message})
         return io.in(room).emit('ROOM_MESSAGE', {room, message});
     })
 
@@ -97,7 +98,6 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
 exports.getAllRooms = io => async (req, res) => {
     try {
         let rooms = await Room.find().select('-history')
-        const recentMessages = await RecentMessages.find()
         const socketRoomInfo = io.of('/').adapter.rooms
         rooms.forEach(r => {
             if (socketRoomInfo[r.name]) {
@@ -108,7 +108,7 @@ exports.getAllRooms = io => async (req, res) => {
             if (err) {
                 return res.status(500).json({message: "error loading dashboard..."})
             }
-            return res.status(200).json({rooms, clients: clients.length, recentMessages})
+            return res.status(200).json({rooms, clients: clients.length})
         });
     } catch (error) {
         console.log(error)
@@ -239,4 +239,55 @@ exports.leaveRoom = io => async (req, res) => {
         console.log(error)
         return res.status(500).json({message: error.message})
     }
+}
+
+exports.recentMessagesListener = io => async (req, res) => {
+    const { id_token } = req
+    try {
+        const user = await User.findOne({id_token})
+        if (user === null) {
+            return res.status(404).json({message: "Couldn't retreive recent messages."})
+        }
+        io.of('/').adapter.remoteJoin(user.socket, 'recentMessages', (err) => {
+            if (err) {
+                console.log(err)
+            }
+            return res.status(200).json({message: 'listening to recent messages'})
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: "Couldn't retreive recent messages"})
+    }
+}
+
+exports.removeRecentMessagesListener = io => async (req, res) => {
+    const { id_token } = req
+    try {
+        const user = await User.findOne({id_token})
+        if (user === null) {
+            return res.status(404).json({message: "Couldn't retreive recent messages."})
+        }
+        io.of('/').adapter.remoteLeave(user.socket, 'recentMessages', (err) => {
+            if (err) {
+                console.log(err)
+            }
+            return res.status(200).json({message: 'removed recent message listener'})
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: "Couldn't retreive recent messages"})
+    }
+}
+
+exports.getRecentMessages = async (req, res) => {
+    try {
+
+        const recentMessages = await RecentMessages.find()
+        return res.status(200).json(recentMessages)
+
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({message: err})
+    }
+    return res.status(200).json([])
 }
