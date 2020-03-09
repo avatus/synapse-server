@@ -1,5 +1,6 @@
 const User = require('../models/user.model')
 const Room = require('../models/room.model')
+const RecentMessages = require('../models/recentMessage.model')
 const randomstring = require('randomstring')
 
 exports.SOCKET_FUNCTIONS = io => async (socket) => {
@@ -62,6 +63,11 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
         history.push(message)
         db_room.history = history
         db_room.save()
+        let newRecentMessage = new RecentMessages({
+            room,
+            message,
+        })
+        newRecentMessage.save()
         return io.in(room).emit('ROOM_MESSAGE', {room, message});
     })
 
@@ -77,6 +83,7 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
 exports.getAllRooms = io => async (req, res) => {
     try {
         let rooms = await Room.find().select('-history')
+        const recentMessages = await RecentMessages.find()
         const socketRoomInfo = io.of('/').adapter.rooms
         rooms.forEach(r => {
             if (socketRoomInfo[r.name]) {
@@ -87,7 +94,7 @@ exports.getAllRooms = io => async (req, res) => {
             if (err) {
                 return res.status(500).json({message: "error loading dashboard..."})
             }
-            return res.status(200).json({rooms, clients: clients.length})
+            return res.status(200).json({rooms, clients: clients.length, recentMessages})
         });
     } catch (error) {
         console.log(error)
