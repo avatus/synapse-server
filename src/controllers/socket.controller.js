@@ -64,11 +64,6 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
         history.push(message)
         db_room.history = history
         db_room.save()
-        let newRecentMessage = new RecentMessages({
-            room,
-            message,
-        })
-        newRecentMessage.save()
         let users = await User.find().where('rooms').in([room])
         users.forEach(u => {
             if (u.id_token !== message.user) {
@@ -86,7 +81,16 @@ exports.SOCKET_FUNCTIONS = io => async (socket) => {
             }
         })
         io.in('recentMessages').emit('RECENT_MESSAGE', {room, message})
-        return io.in(room).emit('ROOM_MESSAGE', {room, message});
+        io.in(room).emit('ROOM_MESSAGE', {room, message});
+        let rms = await RecentMessages.find()
+        let lastm = rms[rms.length-1]
+        if (lastm && lastm.message && lastm.message.text && lastm.message.text !== message.text) {
+            let newRecentMessage = new RecentMessages({
+                room,
+                message,
+            })
+            newRecentMessage.save()
+        }
     })
 
     socket.on('USER_RECONNECTED', async ({id}) => {
