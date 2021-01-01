@@ -14,6 +14,9 @@ const io = require('socket.io')(http);
 const requestIp = require('request-ip')
 const identify = require('./config/identify')
 const Controller = require('./controllers/socket.controller').SOCKET_FUNCTIONS(io)
+const avatars = require('adorable-avatars')
+
+app.use('/avatar', avatars)
 
 io.adapter(redisAdapter({ pubClient: pub, subClient: sub }));
 io.on('connection', Controller)
