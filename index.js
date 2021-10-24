@@ -1,7 +1,7 @@
 require('dotenv').config()
 const chalk = require('chalk')
 
-const http = require('./src/app').http
+const http = require('./src/app').http;
 
 const port = process.env.PORT || 5001
 
