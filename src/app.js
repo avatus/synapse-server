@@ -35,15 +35,15 @@ app.use(cors());
 app.use(requestIp.mw());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.get("/", (req, res) => {
+  return res.json({ hello: "Traveller!" });
+});
+
 app.use(identify);
 
 app.use("/auth", require("./routes/auth.routes"));
 app.use("/sockets", require("./routes/socket.routes.js")(io));
 app.use("/messages", require("./routes/message.routes.js"));
-
-app.get("/", (req, res) => {
-  return res.json({ hello: "Traveller!" });
-});
 
 exports.io = io;
 exports.http = http;
